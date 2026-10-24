@@ -7,7 +7,6 @@
 
 use crate::rabbit::Rabbit;
 use cipher::{KeyIvInit, StreamCipher};
-use sha2::{Digest, Sha256};
 use zeroize::Zeroize;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -93,10 +92,10 @@ pub fn derive_keys(password: &str, keyfile: Option<&[u8]>, salt: &[u8], iters: u
 {
     let mut material = password.as_bytes().to_vec();
     if let Some(kf) = keyfile {
-        material.extend_from_slice(&Sha256::digest(kf));
+        material.extend_from_slice(&crate::sha::sha256(kf));
     }
     let mut dk = [0u8; 64];
-    pbkdf2::pbkdf2_hmac::<Sha256>(&material, salt, iters, &mut dk);
+    crate::sha::pbkdf2_sha256(&material, salt, iters, &mut dk);
     material.zeroize();
     let mut ek = [0u8; 32];
     let mut mk = [0u8; 32];

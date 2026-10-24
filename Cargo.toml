@@ -26,9 +26,6 @@ cipher = "0.4"                                # StreamCipher / KeyIvInit traits
 chacha20 = "0.9"                              # ChaCha20 keystream (RustCrypto)
 aes = "0.8"                                   # AES block cipher
 ctr = "0.9"                                   # CTR mode -> AES-256-CTR keystream
-hmac = "0.12"                                 # HMAC-SHA256 (encrypt-then-MAC)
-sha2 = "0.10"
-pbkdf2 = { version = "0.12", default-features = false, features = ["hmac"] }
 rand = "0.8"                                  # random salt / IV
 walkdir = "2"                                 # recursive directory walk
 clap = { version = "4", features = ["derive"] }

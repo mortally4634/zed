@@ -1,6 +1,7 @@
 cargo:rerun-if-changed=src/native/crc32.c
 cargo:rerun-if-changed=src/native/xor.S
 cargo:rerun-if-changed=src/native/rabbit.S
+cargo:rerun-if-changed=src/native/sha256.S
 cargo:rerun-if-changed=src/native/xor_avx2.cpp
 cargo:rerun-if-env-changed=CC_FORCE_DISABLE
 CC_FORCE_DISABLE = None

@@ -11,8 +11,6 @@
 //! Also holds `xz_writer`, shared with the plain `.tar.xz` path in `archive`.
 
 use anyhow::{anyhow, bail, Result};
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use std::fs::{self, File};
 use std::io::{self, BufWriter, Read, Seek, SeekFrom, Write};
 use std::path::Path;
@@ -22,8 +20,8 @@ use xz2::write::XzEncoder;
 use crate::archive::{add_inputs, Format};
 use crate::crypto::{derive_keys, make_keystream, Cipher, Keystream};
 use crate::filters::Filter;
+use crate::sha::{ct_eq, HmacSha256};
 
-pub(crate) type HmacSha256 = Hmac<Sha256>;
 pub(crate) const ITERS: u32 = 200_000;
 
 // ------------------------- encrypt-then-MAC plumbing -----------------------
@@ -71,7 +69,7 @@ impl<W: Write> Sink<W> {
             Sink::Enc(e) => {
                 let EncWriter { mut inner, mac, cipher } = e;
                 drop(cipher);
-                let tag = mac.finalize().into_bytes();
+                let tag = mac.finalize();
                 inner.write_all(&tag)?;
                 inner.flush()
             }
@@ -141,7 +139,7 @@ pub(crate) fn compress_zed(inputs: &[std::path::PathBuf], out: &Path, level: u32
         hdr.extend_from_slice(&salt);
         hdr.extend_from_slice(&iv);
         let (ek, mk) = derive_keys(password.unwrap(), keyfile, &salt, ITERS);
-        let mut mac = HmacSha256::new_from_slice(&mk).unwrap();
+        let mut mac = HmacSha256::new(&mk);
         mac.update(&hdr);
         file.write_all(&hdr)?;
         Sink::Enc(EncWriter { inner: file, cipher: make_keystream(cipher, &ek, &iv), mac })
@@ -206,7 +204,7 @@ pub(crate) fn zed_tar_stream(archive: &Path, password: Option<&str>, keyfile: Op
         let mut f1 = File::open(archive)?;
         let mut head = [0u8; 44];
         f1.read_exact(&mut head)?;
-        let mut mac = HmacSha256::new_from_slice(&mk).unwrap();
+        let mut mac = HmacSha256::new(&mk);
         mac.update(&head);
         let mut remaining = ct_len;
         let mut buf = vec![0u8; 1 << 16];
@@ -218,8 +216,9 @@ pub(crate) fn zed_tar_stream(archive: &Path, password: Option<&str>, keyfile: Op
         }
         let mut tag = [0u8; 32];
         f1.read_exact(&mut tag)?;
-        mac.verify_slice(&tag)
-            .map_err(|_| anyhow!("wrong password, or the file has been tampered with"))?;
+        if !ct_eq(&mac.finalize(), &tag) {
+            bail!("wrong password, or the file has been tampered with");
+        }
     }
 
     // Pass 2: decrypt (MAC proven) + decompress.

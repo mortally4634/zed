@@ -18,20 +18,30 @@ and multithreading. The flagship `.zed` format is a **solid tar → LZMA
 | `src/bench.rs` | compression-preset benchmark |
 | `src/native.rs` | FFI to the C + ASM routines (safe wrappers) |
 | `src/native/crc32.c` | **C** — IEEE CRC-32 for recovery-shard checksums |
-| `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream generation kernel) |
+| `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream kernel) |
+| `src/native/sha256.S` | **x86-64 ASM** — SHA-256 block compression (HMAC + PBKDF2 core) |
 | `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR (baseline keystream apply) |
 | `src/native/xor_avx2.cpp` | **C++** — AVX2 SIMD XOR (used when the CPU supports it) |
+| `src/sha.rs` | Rust streaming SHA-256 / HMAC / PBKDF2 over the asm core |
 | `src/lib.rs` | module glue, re-exports, self-test |
 | `src/main.rs` | CLI (`zed`) |
 | `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |
 
 The C, C++ and assembly are compiled by `build.rs` (via the `cc` crate / gcc)
 into static libraries linked into the crate — so the project is built from
-**Rust, C, C++ and x86-64 assembly**. The Rabbit keystream path is assembly
-(`next_state` in `rabbit.S`); the keystream XOR is runtime-dispatched between an
-**AVX2** path (C++, 32 bytes/iter) and an **SSE2** path (asm, 16 bytes/iter)
-depending on the CPU; C handles the recovery checksums. A C/C++ compiler (gcc,
-already needed for the GNU Rust toolchain) is required to build.
+**Rust, C, C++ and x86-64 assembly**. The whole cryptographic core is assembly:
+the Rabbit cipher kernel (`rabbit.S`) and SHA-256 block compression (`sha256.S`,
+the engine behind HMAC and PBKDF2 — so every encrypted archive derives its keys
+and computes its MAC in hand-written asm). The keystream XOR is runtime-dispatched
+between an **AVX2** path (C++) and an **SSE2** path (asm); C handles the recovery
+checksums; Rust is the application shell (CLI, GUI, archive/format/recovery logic,
+and the thin HMAC/PBKDF2 wrappers). A C/C++ compiler (gcc, already needed for the
+GNU Rust toolchain) is required to build.
+
+> Scope note: the computational/crypto kernels are assembly; the application
+> shell stays Rust on purpose. Rewriting file I/O, argument parsing, the GUI and
+> the LZMA/tar plumbing in assembly would be far more bug-prone and no faster —
+> so "mainly assembly" applies to the engine, not the whole program.
 
 ## Build
 

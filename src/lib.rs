@@ -17,6 +17,7 @@ mod format;
 mod native;
 mod rabbit;
 mod recovery;
+mod sha;
 
 use anyhow::{bail, Result};
 use std::fs;
