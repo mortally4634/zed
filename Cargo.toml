@@ -35,6 +35,7 @@ clap = { version = "4", features = ["derive"] }
 indicatif = "0.17"                            # progress bars
 anyhow = "1"                                  # error handling
 zeroize = "1"                                 # wipe derived keys from memory
+rpassword = "7"                               # hidden interactive password entry
 
 [profile.release]
 opt-level = 3

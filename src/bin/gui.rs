@@ -132,12 +132,21 @@ impl App {
 impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         if let Some(rx) = &self.rx {
-            if let Ok(msg) = rx.try_recv() {
-                self.status = msg;
-                self.working = false;
-                self.rx = None;
-            } else {
-                ctx.request_repaint(); // keep polling the worker
+            match rx.try_recv() {
+                Ok(msg) => {
+                    self.status = msg;
+                    self.working = false;
+                    self.rx = None;
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    ctx.request_repaint(); // keep polling the worker
+                }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    // worker panicked without sending - don't spin forever
+                    self.status = "Operation failed unexpectedly.".into();
+                    self.working = false;
+                    self.rx = None;
+                }
             }
         }
 

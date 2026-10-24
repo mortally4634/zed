@@ -17,16 +17,21 @@ cargo build --release --features gui --bin zed-gui  # GUI  -> target/release/zed
 
 ```bash
 zed c out.zed myfolder file.txt           # compress (level 9 default)
-zed c out.zed data -p "pw" -c rabbit      # encrypt (rabbit | chacha20 | aes)
-zed c out.zed data -p "pw" --keyfile k    # password + key file (both required)
-zed x out.zed ./restore -p "pw"           # extract
-zed l out.zed -p "pw"                     # list contents
-zed v out.zed -p "pw"                     # verify integrity / MAC
+zed c out.zed data -e -c rabbit           # encrypt; prompts for password (hidden, confirmed)
+zed c out.zed data -p "pw" -c chacha20    # encrypt with password on argv (scripting)
+zed c out.zed data -e --keyfile k         # password + key file (both required)
+zed x out.zed ./restore                   # extract (prompts if encrypted)
+zed l out.zed                             # list contents
+zed v out.zed                             # verify integrity / MAC
 zed selftest                              # RFC vectors + roundtrip + tamper
 zed c out.zip data                        # .zip / .tar.xz also supported
 ```
 
-Level `0` = store (no compression); `1`–`9` = LZMA.
+- Level `0` = store (no compression); `1`–`9` = LZMA.
+- `-e/--encrypt` prompts for the password with hidden input and confirmation
+  (safer than `-p`, which is visible in the process list and shell history).
+  Extract/list/verify auto-prompt when the archive is encrypted.
+- Compress refuses to overwrite an existing file unless you pass `-f/--force`.
 
 ## Encryption
 

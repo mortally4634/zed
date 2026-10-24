@@ -31,15 +31,21 @@ enum Cmd {
         /// Compression level 0-9 (0 = store, 9 = max). Default 9.
         #[arg(short, long, default_value_t = 9)]
         level: u32,
-        /// Password (enables encryption; .zed only)
+        /// Password (enables encryption; .zed only). Omit with -e to be prompted.
         #[arg(short, long)]
         password: Option<String>,
+        /// Encrypt, prompting for the password interactively (hidden input)
+        #[arg(short, long)]
+        encrypt: bool,
         /// Cipher for encryption
         #[arg(short, long, default_value = "rabbit")]
         cipher: String,
         /// Extra key file mixed into the password (both then required)
         #[arg(long)]
         keyfile: Option<PathBuf>,
+        /// Overwrite the output file if it already exists
+        #[arg(short, long)]
+        force: bool,
     },
     /// Extract an archive
     #[command(visible_alias = "x")]
@@ -81,18 +87,56 @@ fn main() {
     }
 }
 
+/// Prompt for a new password twice (hidden) and require the two to match.
+fn prompt_new_password() -> Result<String> {
+    let p1 = rpassword::prompt_password("Password: ")
+        .map_err(|e| anyhow::anyhow!("could not read password: {e}"))?;
+    if p1.is_empty() {
+        bail!("password must not be empty");
+    }
+    let p2 = rpassword::prompt_password("Confirm:  ")
+        .map_err(|e| anyhow::anyhow!("could not read password: {e}"))?;
+    if p1 != p2 {
+        bail!("passwords did not match");
+    }
+    Ok(p1)
+}
+
+/// Resolve the password for reading: use the supplied one, else prompt (hidden)
+/// only if the archive is actually encrypted.
+fn resolve_read_password(archive: &std::path::Path, supplied: Option<String>) -> Result<Option<String>> {
+    if supplied.is_some() {
+        return Ok(supplied);
+    }
+    if zedcompress::is_encrypted(archive)? {
+        let p = rpassword::prompt_password("Password: ")
+            .map_err(|e| anyhow::anyhow!("could not read password: {e}"))?;
+        return Ok(Some(p));
+    }
+    Ok(None)
+}
+
 fn run() -> Result<()> {
     match Cli::parse().cmd {
-        Cmd::Compress { output, inputs, level, password, cipher, keyfile } => {
+        Cmd::Compress { output, inputs, level, password, encrypt, cipher, keyfile, force } => {
             if level > 9 {
                 bail!("level must be 0-9");
+            }
+            if output.exists() && !force {
+                bail!("{} already exists (use --force to overwrite)", output.display());
             }
             let fmt = Format::from_path(&output)?;
             let cipher = Cipher::parse(&cipher)
                 .ok_or_else(|| anyhow::anyhow!("unknown cipher '{cipher}' (rabbit|chacha20|aes)"))?;
-            if password.is_some() && !fmt.supports_encryption() {
+            if (password.is_some() || encrypt) && !fmt.supports_encryption() {
                 bail!("encryption is only supported for .zed archives");
             }
+            // -p sets it directly; -e (without -p) prompts with confirmation.
+            let password = match (password, encrypt) {
+                (Some(p), _) => Some(p),
+                (None, true) => Some(prompt_new_password()?),
+                (None, false) => None,
+            };
             let (orig, size) = compress(&inputs, &output, level, password.as_deref(),
                                         keyfile.as_deref(), cipher, fmt)?;
             let ratio = if size > 0 { orig as f64 / size as f64 } else { 0.0 };
@@ -108,11 +152,13 @@ fn run() -> Result<()> {
             );
         }
         Cmd::Extract { archive, outdir, password, keyfile } => {
+            let password = resolve_read_password(&archive, password)?;
             let out = outdir.unwrap_or_else(|| PathBuf::from("."));
             extract(&archive, &out, password.as_deref(), keyfile.as_deref())?;
             println!("extracted {} → {}", archive.display(), out.display());
         }
         Cmd::List { archive, password, keyfile } => {
+            let password = resolve_read_password(&archive, password)?;
             let items = list(&archive, password.as_deref(), keyfile.as_deref())?;
             let mut total = 0u64;
             for (name, size) in &items {
@@ -122,6 +168,7 @@ fn run() -> Result<()> {
             println!("— {} files, {} uncompressed", items.len(), human(total as f64));
         }
         Cmd::Verify { archive, password, keyfile } => {
+            let password = resolve_read_password(&archive, password)?;
             let n = verify(&archive, password.as_deref(), keyfile.as_deref())?;
             println!("OK — {} entries intact ({})", n, archive.display());
         }

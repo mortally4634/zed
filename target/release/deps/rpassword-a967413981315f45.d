@@ -1,0 +1,11 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\rpassword-a967413981315f45.d: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\config.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\feedback.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\windows.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\utf8.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\librpassword-a967413981315f45.rlib: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\config.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\feedback.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\windows.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\utf8.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\librpassword-a967413981315f45.rmeta: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\config.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\feedback.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\windows.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\utf8.rs
+
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\lib.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\config.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\feedback.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\windows.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\rpassword-7.5.4\src\utf8.rs:

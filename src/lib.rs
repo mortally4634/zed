@@ -54,6 +54,22 @@ impl Format {
     }
 }
 
+/// True if `archive` is an encrypted .zed (so the caller can prompt for a
+/// password). Non-.zed formats are never encrypted here.
+pub fn is_encrypted(archive: &Path) -> Result<bool> {
+    if Format::from_path(archive)? != Format::Zed {
+        return Ok(false);
+    }
+    let mut f = File::open(archive)?;
+    let mut core = [0u8; 8];
+    f.read_exact(&mut core)
+        .map_err(|_| anyhow!("{} is not a valid .zed file", archive.display()))?;
+    if &core[..4] != b"ZED1" {
+        bail!("{} is not a valid .zed file (bad magic)", archive.display());
+    }
+    Ok(core[4] >= 2 && core[6] != 0)
+}
+
 // ---------------------------- byte accounting ------------------------------
 pub fn total_size(inputs: &[PathBuf]) -> u64 {
     let mut n = 0;
