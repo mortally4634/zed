@@ -16,9 +16,20 @@ and multithreading. The flagship `.zed` format is a **solid tar → LZMA
 | `src/archive.rs` | format dispatch + public compress/extract/list/verify |
 | `src/recovery.rs` | Reed-Solomon recovery records (protect/repair) |
 | `src/bench.rs` | compression-preset benchmark |
+| `src/native.rs` | FFI to the C + ASM routines (safe wrappers) |
+| `src/native/crc32.c` | **C** — IEEE CRC-32 for recovery-shard checksums |
+| `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream generation kernel) |
+| `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR applying the keystream |
 | `src/lib.rs` | module glue, re-exports, self-test |
 | `src/main.rs` | CLI (`zed`) |
 | `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |
+
+The C and assembly are compiled by `build.rs` (via the `cc` crate / gcc) into a
+static library linked into the crate — so the project is built from **Rust, C,
+and x86-64 assembly**. The entire Rabbit keystream path is now assembly:
+`next_state` (the generation kernel) in `rabbit.S` and the XOR application in
+`xor.S`; C handles the recovery checksums. A C compiler (gcc, already needed for
+the GNU Rust toolchain) is required to build.
 
 ## Build
 

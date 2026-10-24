@@ -4889,10 +4889,10 @@ version = "0.2.0"
 dependencies = [
  "aes",
  "anyhow",
+ "cc",
  "chacha20",
  "cipher",
  "clap",
- "crc32fast",
  "ctr",
  "eframe",
  "hmac",

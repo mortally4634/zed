@@ -1,47 +1,38 @@
-//! Rabbit stream cipher (RFC 4503), hand-written because no mainstream Rust
-//! crate provides it. Verified against the RFC test vectors in `crypto::vectors_ok`.
+//! Rabbit stream cipher (RFC 4503).
 //!
-//! ponytail: keystream is produced per 16-byte block and buffered; per-byte XOR
-//! is the ceiling — switch to block-wise XOR if throughput ever matters.
+//! The hot kernel — `next_state` (counter system + g-function + state update) —
+//! is hand-written x86-64 assembly in `src/native/rabbit.S`. Key/IV setup and
+//! the cheap extraction step stay in Rust. Verified against RFC 4503 known
+//! answers (multiple keys and IVs) in `crypto::vectors_ok`.
 
 use crate::crypto::Keystream;
 
-const RABBIT_A: [u32; 8] = [
-    0x4D34D34D, 0xD34D34D3, 0x34D34D34, 0x4D34D34D,
-    0xD34D34D3, 0x34D34D34, 0x4D34D34D, 0xD34D34D3,
-];
-
-pub struct Rabbit {
+/// Shared cipher state; `#[repr(C)]` so the assembly and Rust agree on the
+/// byte layout (x[8] @ +0, c[8] @ +32, b @ +64).
+#[repr(C)]
+struct RabbitState {
     x: [u32; 8],
     c: [u32; 8],
     b: u32,
+}
+
+extern "C" {
+    /// Advance the state one step. Implemented in `src/native/rabbit.S`.
+    fn zed_rabbit_next(state: *mut RabbitState);
+}
+
+pub struct Rabbit {
+    st: RabbitState,
     kbuf: [u8; 16],
     pos: usize,
 }
 
 impl Rabbit {
+    #[inline]
     fn next_state(&mut self) {
-        let mut carry = self.b as u64;
-        for i in 0..8 {
-            let t = self.c[i] as u64 + RABBIT_A[i] as u64 + carry;
-            self.c[i] = t as u32;
-            carry = t >> 32;
-        }
-        self.b = (carry & 1) as u32;
-        let mut g = [0u32; 8];
-        for i in 0..8 {
-            let u = self.x[i].wrapping_add(self.c[i]);
-            let sq = (u as u64).wrapping_mul(u as u64);
-            g[i] = (sq ^ (sq >> 32)) as u32;
-        }
-        self.x[0] = g[0].wrapping_add(g[7].rotate_left(16)).wrapping_add(g[6].rotate_left(16));
-        self.x[1] = g[1].wrapping_add(g[0].rotate_left(8)).wrapping_add(g[7]);
-        self.x[2] = g[2].wrapping_add(g[1].rotate_left(16)).wrapping_add(g[0].rotate_left(16));
-        self.x[3] = g[3].wrapping_add(g[2].rotate_left(8)).wrapping_add(g[1]);
-        self.x[4] = g[4].wrapping_add(g[3].rotate_left(16)).wrapping_add(g[2].rotate_left(16));
-        self.x[5] = g[5].wrapping_add(g[4].rotate_left(8)).wrapping_add(g[3]);
-        self.x[6] = g[6].wrapping_add(g[5].rotate_left(16)).wrapping_add(g[4].rotate_left(16));
-        self.x[7] = g[7].wrapping_add(g[6].rotate_left(8)).wrapping_add(g[5]);
+        // SAFETY: the asm reads/writes exactly the 68-byte RabbitState it is
+        // given; `&mut self.st` is a valid, uniquely-borrowed pointer to it.
+        unsafe { zed_rabbit_next(&mut self.st) }
     }
 
     pub fn new(key: &[u8; 16], iv: Option<&[u8; 8]>) -> Self {
@@ -60,12 +51,12 @@ impl Rabbit {
                 c[j] = ((k[j] as u32) << 16) | k[(j + 1) % 8] as u32;
             }
         }
-        let mut r = Rabbit { x, c, b: 0, kbuf: [0; 16], pos: 16 };
+        let mut r = Rabbit { st: RabbitState { x, c, b: 0 }, kbuf: [0; 16], pos: 16 };
         for _ in 0..4 {
             r.next_state();
         }
         for j in 0..8 {
-            r.c[j] ^= r.x[(j + 4) % 8];
+            r.st.c[j] ^= r.st.x[(j + 4) % 8];
         }
         if let Some(iv) = iv {
             let i0 = ((iv[4] as u32) << 24) | ((iv[5] as u32) << 16) | ((iv[6] as u32) << 8) | iv[7] as u32;
@@ -74,7 +65,7 @@ impl Rabbit {
             let i3 = ((i2 & 0xFFFF) << 16) | (i0 & 0xFFFF);
             let ivs = [i0, i1, i2, i3, i0, i1, i2, i3];
             for j in 0..8 {
-                r.c[j] ^= ivs[j];
+                r.st.c[j] ^= ivs[j];
             }
             for _ in 0..4 {
                 r.next_state();
@@ -83,9 +74,10 @@ impl Rabbit {
         r
     }
 
+    /// Advance one step (asm) and extract a 16-byte keystream block (Rust).
     fn block(&mut self) -> [u8; 16] {
         self.next_state();
-        let x = &self.x;
+        let x = &self.st.x;
         let s0 = x[0] ^ (x[5] >> 16) ^ (x[3] << 16);
         let s1 = x[2] ^ (x[7] >> 16) ^ (x[5] << 16);
         let s2 = x[4] ^ (x[1] >> 16) ^ (x[7] << 16);
@@ -96,17 +88,26 @@ impl Rabbit {
         }
         o
     }
-}
 
-impl Keystream for Rabbit {
-    fn xor(&mut self, buf: &mut [u8]) {
-        for d in buf.iter_mut() {
+    /// Fill `out` with the next `out.len()` keystream bytes, continuing state.
+    fn fill_keystream(&mut self, out: &mut [u8]) {
+        for o in out.iter_mut() {
             if self.pos == 16 {
                 self.kbuf = self.block();
                 self.pos = 0;
             }
-            *d ^= self.kbuf[self.pos];
+            *o = self.kbuf[self.pos];
             self.pos += 1;
         }
+    }
+}
+
+impl Keystream for Rabbit {
+    fn xor(&mut self, buf: &mut [u8]) {
+        // Generate the matching keystream, then apply it with the SSE2 asm XOR.
+        // ponytail: one scratch alloc per call; add a reusable buffer if hot.
+        let mut ks = vec![0u8; buf.len()];
+        self.fill_keystream(&mut ks);
+        crate::native::xor_inplace(buf, &ks);
     }
 }

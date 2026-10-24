@@ -123,6 +123,22 @@ pub fn vectors_ok() -> Result<(), String> {
     if blk != hexu("c6a7275ef85495d87ccd5d376705b7ed") {
         return Err("Rabbit RFC4503 IV vector failed".into());
     }
+    // Rabbit RFC 4503 (non-zero key, no IV) - independent KAT for the asm kernel.
+    let key2 = [0x91, 0x28, 0x13, 0x29, 0x2E, 0x3D, 0x36, 0xFE,
+                0x3B, 0xFC, 0x62, 0xF1, 0xDC, 0x51, 0xC3, 0xAC];
+    let mut r = Rabbit::new(&key2, None);
+    let mut blk = [0u8; 16];
+    r.xor(&mut blk);
+    if blk != hexu("3d2df3c83ef627a1e97fc38487e2519c") {
+        return Err("Rabbit RFC4503 key2 vector failed".into());
+    }
+    // Rabbit RFC 4503 (zero key, non-zero IV).
+    let mut r = Rabbit::new(&[0u8; 16], Some(&[0xC3, 0x73, 0xF5, 0x75, 0xC1, 0x26, 0x7E, 0x59]));
+    let mut blk = [0u8; 16];
+    r.xor(&mut blk);
+    if blk != hexu("1fcd4eb9580012e2e0dccc9222017d6d") {
+        return Err("Rabbit RFC4503 IV2 vector failed".into());
+    }
     // ChaCha20 RFC 8439 block function (key 00..1f, counter 1, nonce ..09..4a..).
     let mut key = [0u8; 32];
     for i in 0..32 {

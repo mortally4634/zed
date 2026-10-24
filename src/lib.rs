@@ -14,6 +14,7 @@ mod bench;
 mod crypto;
 mod filters;
 mod format;
+mod native;
 mod rabbit;
 mod recovery;
 
@@ -31,6 +32,13 @@ pub use recovery::{protect, repair};
 pub fn self_test() -> Result<()> {
     crypto::vectors_ok().map_err(anyhow::Error::msg)?;
     println!("[selftest] cipher RFC vectors: OK (Rabbit RFC4503, ChaCha20 RFC8439)");
+
+    // native C CRC32 (zip polynomial) check value; the ASM XOR is exercised by
+    // every Rabbit roundtrip below.
+    if native::crc32(b"123456789") != 0xCBF4_3926 {
+        bail!("native C CRC32 vector failed");
+    }
+    println!("[selftest] native C CRC32 + ASM XOR wired: OK");
 
     let dir = std::env::temp_dir().join(format!("zed_selftest_{}", std::process::id()));
     let _ = fs::remove_dir_all(&dir);

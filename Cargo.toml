@@ -37,7 +37,9 @@ anyhow = "1"                                  # error handling
 zeroize = "1"                                 # wipe derived keys from memory
 rpassword = "7"                               # hidden interactive password entry
 reed-solomon-erasure = "6"                    # Reed-Solomon parity for recovery records
-crc32fast = "1"                               # fast CRC32 for shard corruption detection
+
+[build-dependencies]
+cc = "1"                                      # compiles the C + ASM native routines
 
 [profile.release]
 opt-level = 3

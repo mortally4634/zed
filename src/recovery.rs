@@ -58,7 +58,7 @@ pub fn protect(archive: &Path, percent: u32) -> Result<(PathBuf, u32)> {
     let rs = ReedSolomon::new(k, m).map_err(|e| anyhow!("reed-solomon init: {e:?}"))?;
     rs.encode(&mut shards).map_err(|e| anyhow!("reed-solomon encode: {e:?}"))?;
 
-    let crcs: Vec<u32> = shards.iter().map(|s| crc32fast::hash(s)).collect();
+    let crcs: Vec<u32> = shards.iter().map(|s| crate::native::crc32(s)).collect();
 
     let mut out = Vec::with_capacity(HEADER + crcs.len() * 4 + m * shard_size);
     out.extend_from_slice(RVZ_MAGIC);
@@ -113,7 +113,7 @@ pub fn repair(archive: &Path) -> Result<usize> {
             let end = (start + shard_size).min(data.len());
             s[..end - start].copy_from_slice(&data[start..end]);
         }
-        if crc32fast::hash(&s) == crcs[i] {
+        if crate::native::crc32(&s) == crcs[i] {
             shards.push(Some(s));
         } else {
             shards.push(None);
@@ -124,7 +124,7 @@ pub fn repair(archive: &Path) -> Result<usize> {
     for j in 0..m {
         let o = parity_off + j * shard_size;
         let s = meta[o..o + shard_size].to_vec();
-        if crc32fast::hash(&s) == crcs[k + j] {
+        if crate::native::crc32(&s) == crcs[k + j] {
             shards.push(Some(s));
         } else {
             shards.push(None);
