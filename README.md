@@ -28,6 +28,10 @@ zed c out.zip data                        # .zip / .tar.xz also supported
 ```
 
 - Level `0` = store (no compression); `1`–`9` = LZMA.
+- `--filter` adds a BCJ pre-filter that improves compression of machine code
+  (like 7-Zip/WinRAR): `auto` (default — detects PE/ELF and applies `x86`),
+  `none`, `x86`, `arm`, `arm-thumb`, `powerpc`, `ia64`, `sparc`. The `.xz`
+  container records the filter, so extraction reverses it automatically.
 - `-e/--encrypt` prompts for the password with hidden input and confirmation
   (safer than `-p`, which is visible in the process list and shell history).
   Extract/list/verify auto-prompt when the archive is encrypted.

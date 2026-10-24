@@ -9,7 +9,7 @@
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use zedcompress::{compress, extract, human, list, self_test, verify, Cipher, Format};
+use zedcompress::{compress, extract, human, list, self_test, verify, Cipher, Filter, Format};
 
 #[derive(Parser)]
 #[command(name = "zed", version, about = "ZedCompress - solid LZMA archiver with authenticated encryption")]
@@ -40,6 +40,9 @@ enum Cmd {
         /// Cipher for encryption
         #[arg(short, long, default_value = "rabbit")]
         cipher: String,
+        /// LZMA pre-filter: auto|none|x86|arm|arm-thumb|powerpc|ia64|sparc
+        #[arg(long, default_value = "auto")]
+        filter: String,
         /// Extra key file mixed into the password (both then required)
         #[arg(long)]
         keyfile: Option<PathBuf>,
@@ -118,7 +121,7 @@ fn resolve_read_password(archive: &std::path::Path, supplied: Option<String>) ->
 
 fn run() -> Result<()> {
     match Cli::parse().cmd {
-        Cmd::Compress { output, inputs, level, password, encrypt, cipher, keyfile, force } => {
+        Cmd::Compress { output, inputs, level, password, encrypt, cipher, filter, keyfile, force } => {
             if level > 9 {
                 bail!("level must be 0-9");
             }
@@ -128,6 +131,8 @@ fn run() -> Result<()> {
             let fmt = Format::from_path(&output)?;
             let cipher = Cipher::parse(&cipher)
                 .ok_or_else(|| anyhow::anyhow!("unknown cipher '{cipher}' (rabbit|chacha20|aes)"))?;
+            let filter = Filter::parse(&filter)
+                .ok_or_else(|| anyhow::anyhow!("unknown filter '{filter}'"))?;
             if (password.is_some() || encrypt) && !fmt.supports_encryption() {
                 bail!("encryption is only supported for .zed archives");
             }
@@ -137,8 +142,8 @@ fn run() -> Result<()> {
                 (None, true) => Some(prompt_new_password()?),
                 (None, false) => None,
             };
-            let (orig, size) = compress(&inputs, &output, level, password.as_deref(),
-                                        keyfile.as_deref(), cipher, fmt)?;
+            let (orig, size, used) = compress(&inputs, &output, level, password.as_deref(),
+                                              keyfile.as_deref(), cipher, filter, fmt)?;
             let ratio = if size > 0 { orig as f64 / size as f64 } else { 0.0 };
             let saved = if orig > 0 { 100.0 * (1.0 - size as f64 / orig as f64) } else { 0.0 };
             let enc = if password.is_some() {
@@ -146,9 +151,14 @@ fn run() -> Result<()> {
             } else {
                 String::new()
             };
+            let filt = if used != Filter::None {
+                format!("  · filter {}", used.name())
+            } else {
+                String::new()
+            };
             println!(
-                "wrote {}  ({} → {}, ratio {:.1}×, saved {:.1}%{})",
-                output.display(), human(orig as f64), human(size as f64), ratio, saved, enc
+                "wrote {}  ({} → {}, ratio {:.1}×, saved {:.1}%{}{})",
+                output.display(), human(orig as f64), human(size as f64), ratio, saved, enc, filt
             );
         }
         Cmd::Extract { archive, outdir, password, keyfile } => {

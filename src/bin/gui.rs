@@ -4,7 +4,7 @@
 use eframe::egui;
 use std::path::PathBuf;
 use std::sync::mpsc::{channel, Receiver};
-use zedcompress::{compress, extract, human, Cipher, Format};
+use zedcompress::{compress, extract, human, Cipher, Filter, Format};
 
 const CIPHERS: [(Cipher, &str); 3] = [
     (Cipher::Rabbit, "Rabbit (default)"),
@@ -91,8 +91,8 @@ impl App {
         self.status = "Compressing…".into();
         self.start(move || {
             let pw_opt = if encrypt { Some(pw.as_str()) } else { None };
-            match compress(&inputs, &out, level, pw_opt, keyfile.as_deref(), cipher, fmt) {
-                Ok((orig, size)) => {
+            match compress(&inputs, &out, level, pw_opt, keyfile.as_deref(), cipher, Filter::Auto, fmt) {
+                Ok((orig, size, _used)) => {
                     let ratio = if size > 0 { orig as f64 / size as f64 } else { 0.0 };
                     let saved = if orig > 0 { 100.0 * (1.0 - size as f64 / orig as f64) } else { 0.0 };
                     let enc = if encrypt { format!("  · encrypted ({cname})") } else { String::new() };

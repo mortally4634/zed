@@ -70,6 +70,93 @@ pub fn is_encrypted(archive: &Path) -> Result<bool> {
     Ok(core[4] >= 2 && core[6] != 0)
 }
 
+/// Optional LZMA pre-filter. BCJ (branch/call/jump) filters rewrite machine
+/// code so LZMA compresses executables better (like 7-Zip / WinRAR). The .xz
+/// container records the chosen filter, so extraction reverses it automatically
+/// — this choice only affects the compressor.
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+pub enum Filter {
+    None,
+    X86,
+    Arm,
+    ArmThumb,
+    PowerPc,
+    Ia64,
+    Sparc,
+    /// Detect executables and pick a BCJ filter, else None.
+    Auto,
+}
+
+impl Filter {
+    pub fn parse(s: &str) -> Option<Filter> {
+        Some(match s.to_ascii_lowercase().as_str() {
+            "none" => Filter::None,
+            "x86" => Filter::X86,
+            "arm" => Filter::Arm,
+            "armthumb" | "arm-thumb" => Filter::ArmThumb,
+            "powerpc" | "ppc" => Filter::PowerPc,
+            "ia64" => Filter::Ia64,
+            "sparc" => Filter::Sparc,
+            "auto" => Filter::Auto,
+            _ => return None,
+        })
+    }
+    pub fn name(self) -> &'static str {
+        match self {
+            Filter::None => "none",
+            Filter::X86 => "x86",
+            Filter::Arm => "arm",
+            Filter::ArmThumb => "arm-thumb",
+            Filter::PowerPc => "powerpc",
+            Filter::Ia64 => "ia64",
+            Filter::Sparc => "sparc",
+            Filter::Auto => "auto",
+        }
+    }
+    fn apply(self, f: &mut xz2::stream::Filters) {
+        match self {
+            Filter::X86 => { f.x86(); }
+            Filter::Arm => { f.arm(); }
+            Filter::ArmThumb => { f.arm_thumb(); }
+            Filter::PowerPc => { f.powerpc(); }
+            Filter::Ia64 => { f.ia64(); }
+            Filter::Sparc => { f.sparc(); }
+            Filter::None | Filter::Auto => {}
+        }
+    }
+}
+
+/// Peek at the first bytes of the inputs for PE (`MZ`) / ELF magic.
+fn sniff_executable(inputs: &[PathBuf]) -> bool {
+    use std::io::Read as _;
+    let mut checked = 0;
+    for p in inputs {
+        let files: Vec<PathBuf> = if p.is_dir() {
+            WalkDir::new(p).into_iter().flatten()
+                .filter(|e| e.file_type().is_file())
+                .map(|e| e.into_path())
+                .collect()
+        } else {
+            vec![p.clone()]
+        };
+        for f in files {
+            if checked >= 256 {
+                return false; // bounded sniff; don't scan huge trees
+            }
+            checked += 1;
+            if let Ok(mut fh) = File::open(&f) {
+                let mut magic = [0u8; 4];
+                if fh.read_exact(&mut magic).is_ok()
+                    && (&magic[..2] == b"MZ" || magic == [0x7F, b'E', b'L', b'F'])
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    false
+}
+
 // ---------------------------- byte accounting ------------------------------
 pub fn total_size(inputs: &[PathBuf]) -> u64 {
     let mut n = 0;
@@ -172,10 +259,15 @@ impl<R: Read> Read for DecReader<R> {
     }
 }
 
-fn xz_writer<W: Write>(w: W, level: u32) -> Result<XzEncoder<W>> {
+fn xz_writer<W: Write>(w: W, level: u32, filter: Filter) -> Result<XzEncoder<W>> {
     // preset 9 | EXTREME for the top level; plain preset otherwise.
     let preset = if level >= 9 { 9 | 0x8000_0000 } else { level };
-    let stream = xz2::stream::Stream::new_easy_encoder(preset, xz2::stream::Check::Crc64)
+    let opts = xz2::stream::LzmaOptions::new_preset(preset)
+        .map_err(|e| anyhow!("xz options failed: {e}"))?;
+    let mut filters = xz2::stream::Filters::new();
+    filter.apply(&mut filters); // optional BCJ pre-filter (Auto already resolved)
+    filters.lzma2(&opts); // compression filter must come last in the chain
+    let stream = xz2::stream::Stream::new_stream_encoder(&filters, xz2::stream::Check::Crc64)
         .map_err(|e| anyhow!("xz init failed: {e}"))?;
     Ok(XzEncoder::new_stream(w, stream))
 }
@@ -209,7 +301,8 @@ fn add_inputs<W: Write>(b: &mut tar::Builder<W>, inputs: &[PathBuf],
 
 // ------------------------------- .zed write --------------------------------
 fn compress_zed(inputs: &[PathBuf], out: &Path, level: u32, password: Option<&str>,
-                keyfile: Option<&[u8]>, cipher: Cipher, pb: &indicatif::ProgressBar) -> Result<u64> {
+                keyfile: Option<&[u8]>, cipher: Cipher, filter: Filter,
+                pb: &indicatif::ProgressBar) -> Result<u64> {
     let comp: u8 = if level == 0 { 0 } else { 1 };
     let encrypt = password.map(|p| !p.is_empty()).unwrap_or(false);
     let cipher_id = if encrypt { cipher.id() } else { 0 };
@@ -237,7 +330,7 @@ fn compress_zed(inputs: &[PathBuf], out: &Path, level: u32, password: Option<&st
     };
 
     if comp == 1 {
-        let xz = xz_writer(sink, level)?;
+        let xz = xz_writer(sink, level, filter)?;
         let mut b = tar::Builder::new(xz);
         add_inputs(&mut b, inputs, pb)?;
         let xz = b.into_inner()?;
@@ -321,9 +414,10 @@ fn zed_tar_stream(archive: &Path, password: Option<&str>, keyfile: Option<&[u8]>
 }
 
 // ------------------------- other formats (no crypto) -----------------------
-fn compress_tarxz(inputs: &[PathBuf], out: &Path, level: u32, pb: &indicatif::ProgressBar) -> Result<u64> {
+fn compress_tarxz(inputs: &[PathBuf], out: &Path, level: u32, filter: Filter,
+                  pb: &indicatif::ProgressBar) -> Result<u64> {
     let file = BufWriter::new(File::create(out)?);
-    let xz = xz_writer(file, level)?;
+    let xz = xz_writer(file, level, filter)?;
     let mut b = tar::Builder::new(xz);
     add_inputs(&mut b, inputs, pb)?;
     b.into_inner()?.finish()?;
@@ -367,17 +461,27 @@ fn read_keyfile(keyfile: Option<&Path>) -> Result<Option<Vec<u8>>> {
 }
 
 pub fn compress(inputs: &[PathBuf], out: &Path, level: u32, password: Option<&str>,
-                keyfile: Option<&Path>, cipher: Cipher, format: Format) -> Result<(u64, u64)> {
+                keyfile: Option<&Path>, cipher: Cipher, filter: Filter, format: Format)
+    -> Result<(u64, u64, Filter)>
+{
     let original = total_size(inputs);
     let pb = bar(original);
     let kf = read_keyfile(keyfile)?;
+    // Resolve Auto now so we can report the filter actually used.
+    let filter = match filter {
+        Filter::Auto if level > 0 => {
+            if sniff_executable(inputs) { Filter::X86 } else { Filter::None }
+        }
+        Filter::Auto => Filter::None,
+        f => f,
+    };
     let size = match format {
-        Format::Zed => compress_zed(inputs, out, level, password, kf.as_deref(), cipher, &pb)?,
-        Format::TarXz => compress_tarxz(inputs, out, level, &pb)?,
-        Format::Zip => compress_zip(inputs, out, level, &pb)?,
+        Format::Zed => compress_zed(inputs, out, level, password, kf.as_deref(), cipher, filter, &pb)?,
+        Format::TarXz => compress_tarxz(inputs, out, level, filter, &pb)?,
+        Format::Zip => compress_zip(inputs, out, level, &pb)?, // zip: no LZMA filters
     };
     pb.finish_and_clear();
-    Ok((original, size))
+    Ok((original, size, filter))
 }
 
 pub fn extract(archive: &Path, outdir: &Path, password: Option<&str>, keyfile: Option<&Path>) -> Result<()> {
@@ -509,7 +613,7 @@ pub fn self_test() -> Result<()> {
         ("aes256", Some("correct horse battery staple"), Cipher::Aes256Ctr),
     ] {
         let arc = dir.join(format!("out_{label}.zed"));
-        let (orig, size) = compress(&inputs, &arc, 6, pw, None, cipher, Format::Zed)?;
+        let (orig, size, _) = compress(&inputs, &arc, 6, pw, None, cipher, Filter::Auto, Format::Zed)?;
         let rest = dir.join(format!("restored_{label}"));
         extract(&arc, &rest, pw, None)?;
         for rel in ["payload/zeros.bin", "payload/text.txt", "payload/random.bin"] {
@@ -521,6 +625,23 @@ pub fn self_test() -> Result<()> {
         }
         println!("[selftest] roundtrip {label}: OK  {} -> {}", human(orig as f64), human(size as f64));
     }
+
+    // BCJ filter: an executable-like payload must auto-select x86 and roundtrip.
+    let exe_dir = dir.join("exe");
+    fs::create_dir_all(&exe_dir)?;
+    let mut fake_exe = b"MZ".to_vec();
+    fake_exe.extend((0..200_000u32).map(|i| (i.wrapping_mul(2654435761) >> 24) as u8));
+    fs::write(exe_dir.join("app.exe"), &fake_exe)?;
+    let farc = dir.join("filtered.zed");
+    let (_, _, used) = compress(&[exe_dir.clone()], &farc, 6, None, None, Cipher::Rabbit, Filter::Auto, Format::Zed)?;
+    if used != Filter::X86 {
+        bail!("auto filter did not select x86 for an executable (got {:?})", used);
+    }
+    extract(&farc, &dir.join("exe_out"), None, None)?;
+    if fs::read(dir.join("exe_out/exe/app.exe"))? != fake_exe {
+        bail!("BCJ-filtered roundtrip mismatch");
+    }
+    println!("[selftest] BCJ filter (auto->x86) roundtrip: OK");
 
     // wrong password rejected
     let enc = dir.join("out_rabbit.zed");
