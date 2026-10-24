@@ -1,0 +1,1 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\zed-gui.exe: C:\Users\karae\Documents\Code\zedcompress\src\bin\gui.rs C:\Users\karae\Documents\Code\zedcompress\src\crypto.rs C:\Users\karae\Documents\Code\zedcompress\src\lib.rs

@@ -1,0 +1,11 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\getrandom-d4c4662b82c61c99.d: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\util.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error_impls.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\windows.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libgetrandom-d4c4662b82c61c99.rlib: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\util.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error_impls.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\windows.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libgetrandom-d4c4662b82c61c99.rmeta: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\util.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error_impls.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\windows.rs
+
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\lib.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\util.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\error_impls.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\getrandom-0.2.17\src\windows.rs:

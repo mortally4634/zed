@@ -1,0 +1,11 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\fdeflate-3f61a4b9eeffce52.d: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\compress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\decompress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\huffman.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\tables.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libfdeflate-3f61a4b9eeffce52.rlib: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\compress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\decompress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\huffman.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\tables.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libfdeflate-3f61a4b9eeffce52.rmeta: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\compress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\decompress.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\huffman.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\tables.rs
+
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\lib.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\compress.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\decompress.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\huffman.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\fdeflate-0.3.7\src\tables.rs:

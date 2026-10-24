@@ -1,0 +1,10 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\owned_ttf_parser-949ab2b5c86a6858.d: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\convert.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\owned.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\preparse.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libowned_ttf_parser-949ab2b5c86a6858.rlib: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\convert.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\owned.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\preparse.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libowned_ttf_parser-949ab2b5c86a6858.rmeta: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\convert.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\owned.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\preparse.rs
+
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\lib.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\convert.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\owned.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\owned_ttf_parser-0.25.1\src\preparse.rs:

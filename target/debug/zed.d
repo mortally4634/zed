@@ -1,0 +1,1 @@
+C:\Users\karae\Documents\Code\zedcompress\target\debug\zed.exe: C:\Users\karae\Documents\Code\zedcompress\src\crypto.rs C:\Users\karae\Documents\Code\zedcompress\src\lib.rs C:\Users\karae\Documents\Code\zedcompress\src\main.rs

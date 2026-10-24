@@ -1,0 +1,11 @@
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\winapi_util-d6ea1e81905722e0.d: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\console.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\file.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\sysinfo.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\win.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libwinapi_util-d6ea1e81905722e0.rlib: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\console.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\file.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\sysinfo.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\win.rs
+
+C:\Users\karae\Documents\Code\zedcompress\target\release\deps\libwinapi_util-d6ea1e81905722e0.rmeta: C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\lib.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\console.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\file.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\sysinfo.rs C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\win.rs
+
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\lib.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\console.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\file.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\sysinfo.rs:
+C:\Users\karae\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\winapi-util-0.1.11\src\win.rs:
