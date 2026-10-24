@@ -19,17 +19,19 @@ and multithreading. The flagship `.zed` format is a **solid tar → LZMA
 | `src/native.rs` | FFI to the C + ASM routines (safe wrappers) |
 | `src/native/crc32.c` | **C** — IEEE CRC-32 for recovery-shard checksums |
 | `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream generation kernel) |
-| `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR applying the keystream |
+| `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR (baseline keystream apply) |
+| `src/native/xor_avx2.cpp` | **C++** — AVX2 SIMD XOR (used when the CPU supports it) |
 | `src/lib.rs` | module glue, re-exports, self-test |
 | `src/main.rs` | CLI (`zed`) |
 | `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |
 
-The C and assembly are compiled by `build.rs` (via the `cc` crate / gcc) into a
-static library linked into the crate — so the project is built from **Rust, C,
-and x86-64 assembly**. The entire Rabbit keystream path is now assembly:
-`next_state` (the generation kernel) in `rabbit.S` and the XOR application in
-`xor.S`; C handles the recovery checksums. A C compiler (gcc, already needed for
-the GNU Rust toolchain) is required to build.
+The C, C++ and assembly are compiled by `build.rs` (via the `cc` crate / gcc)
+into static libraries linked into the crate — so the project is built from
+**Rust, C, C++ and x86-64 assembly**. The Rabbit keystream path is assembly
+(`next_state` in `rabbit.S`); the keystream XOR is runtime-dispatched between an
+**AVX2** path (C++, 32 bytes/iter) and an **SSE2** path (asm, 16 bytes/iter)
+depending on the CPU; C handles the recovery checksums. A C/C++ compiler (gcc,
+already needed for the GNU Rust toolchain) is required to build.
 
 ## Build
 

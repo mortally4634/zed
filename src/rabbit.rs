@@ -25,6 +25,7 @@ pub struct Rabbit {
     st: RabbitState,
     kbuf: [u8; 16],
     pos: usize,
+    scratch: Vec<u8>, // reused keystream buffer, grown on demand
 }
 
 impl Rabbit {
@@ -51,7 +52,7 @@ impl Rabbit {
                 c[j] = ((k[j] as u32) << 16) | k[(j + 1) % 8] as u32;
             }
         }
-        let mut r = Rabbit { st: RabbitState { x, c, b: 0 }, kbuf: [0; 16], pos: 16 };
+        let mut r = Rabbit { st: RabbitState { x, c, b: 0 }, kbuf: [0; 16], pos: 16, scratch: Vec::new() };
         for _ in 0..4 {
             r.next_state();
         }
@@ -104,10 +105,15 @@ impl Rabbit {
 
 impl Keystream for Rabbit {
     fn xor(&mut self, buf: &mut [u8]) {
-        // Generate the matching keystream, then apply it with the SSE2 asm XOR.
-        // ponytail: one scratch alloc per call; add a reusable buffer if hot.
-        let mut ks = vec![0u8; buf.len()];
-        self.fill_keystream(&mut ks);
-        crate::native::xor_inplace(buf, &ks);
+        // Generate the matching keystream into a reused scratch buffer, then
+        // apply it with the native XOR (AVX2 if available, else SSE2 asm).
+        let n = buf.len();
+        let mut ks = std::mem::take(&mut self.scratch); // reuse prior allocation
+        if ks.len() < n {
+            ks.resize(n, 0);
+        }
+        self.fill_keystream(&mut ks[..n]);
+        crate::native::xor_inplace(buf, &ks[..n]);
+        self.scratch = ks; // keep the buffer for the next call
     }
 }
