@@ -1,8 +1,24 @@
 # ZedCompress (Rust)
 
-A sleek file/folder compressor with authenticated encryption. The flagship
-`.zed` format is a **solid tar → LZMA (preset 9 | EXTREME) → optional
-encryption**. Also reads/writes `.zip` and `.tar.xz`.
+A sleek file/folder compressor with authenticated encryption, recovery records
+and multithreading. The flagship `.zed` format is a **solid tar → LZMA
+(preset 9 | EXTREME) → optional encryption**. Also reads/writes `.zip` and
+`.tar.xz`.
+
+## Source layout
+
+| file | responsibility |
+|---|---|
+| `src/rabbit.rs` | Rabbit stream cipher (RFC 4503) |
+| `src/crypto.rs` | cipher selection, PBKDF2 KDF, keystream trait, RFC self-check |
+| `src/filters.rs` | BCJ pre-filters + executable sniffing |
+| `src/format.rs` | the `.zed` container + shared `xz_writer` |
+| `src/archive.rs` | format dispatch + public compress/extract/list/verify |
+| `src/recovery.rs` | Reed-Solomon recovery records (protect/repair) |
+| `src/bench.rs` | compression-preset benchmark |
+| `src/lib.rs` | module glue, re-exports, self-test |
+| `src/main.rs` | CLI (`zed`) |
+| `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |
 
 ## Build
 
@@ -20,12 +36,29 @@ zed c out.zed myfolder file.txt           # compress (level 9 default)
 zed c out.zed data -e -c rabbit           # encrypt; prompts for password (hidden, confirmed)
 zed c out.zed data -p "pw" -c chacha20    # encrypt with password on argv (scripting)
 zed c out.zed data -e --keyfile k         # password + key file (both required)
+zed c out.zed data -T 0                   # use all CPU cores (multithreaded)
 zed x out.zed ./restore                   # extract (prompts if encrypted)
 zed l out.zed                             # list contents
 zed v out.zed                             # verify integrity / MAC
-zed selftest                              # RFC vectors + roundtrip + tamper
+zed protect out.zed -r 15                 # add 15% recovery records (out.zed.rvz)
+zed repair out.zed                        # repair a damaged archive from its records
+zed bench data                            # compare level/filter presets
+zed selftest                              # RFC vectors + roundtrip + tamper + recovery
 zed c out.zip data                        # .zip / .tar.xz also supported
 ```
+
+## Recovery records (`protect` / `repair`)
+
+Like WinRAR's recovery records: `protect` writes a `<archive>.rvz` sidecar with
+Reed-Solomon parity. If the archive is later damaged (bit-rot, a bad sector),
+`repair` detects the corrupted blocks by CRC and rebuilds them — as long as the
+damage stays within the chosen redundancy. Works on any file, not just `.zed`.
+
+## Multithreading
+
+`-T N` compresses with N threads (`-T 0` = all cores) by splitting the LZMA
+stream into blocks. Default is 1 thread for the best ratio; more threads trade a
+little ratio for a lot of speed on large inputs.
 
 - Level `0` = store (no compression); `1`–`9` = LZMA.
 - `--filter` adds a BCJ pre-filter that improves compression of machine code

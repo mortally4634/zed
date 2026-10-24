@@ -91,7 +91,7 @@ impl App {
         self.status = "Compressing…".into();
         self.start(move || {
             let pw_opt = if encrypt { Some(pw.as_str()) } else { None };
-            match compress(&inputs, &out, level, pw_opt, keyfile.as_deref(), cipher, Filter::Auto, fmt) {
+            match compress(&inputs, &out, level, pw_opt, keyfile.as_deref(), cipher, Filter::Auto, 1, fmt) {
                 Ok((orig, size, _used)) => {
                     let ratio = if size > 0 { orig as f64 / size as f64 } else { 0.0 };
                     let saved = if orig > 0 { 100.0 * (1.0 - size as f64 / orig as f64) } else { 0.0 };

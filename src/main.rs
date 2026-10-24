@@ -9,7 +9,9 @@
 use anyhow::{bail, Result};
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
-use zedcompress::{compress, extract, human, list, self_test, verify, Cipher, Filter, Format};
+use zedcompress::{
+    bench, compress, extract, human, list, protect, repair, self_test, verify, Cipher, Filter, Format,
+};
 
 #[derive(Parser)]
 #[command(name = "zed", version, about = "ZedCompress - solid LZMA archiver with authenticated encryption")]
@@ -43,6 +45,9 @@ enum Cmd {
         /// LZMA pre-filter: auto|none|x86|arm|arm-thumb|powerpc|ia64|sparc
         #[arg(long, default_value = "auto")]
         filter: String,
+        /// Compression threads (0 = all cores). Default 1 (best ratio).
+        #[arg(short = 'T', long, default_value_t = 1)]
+        threads: u32,
         /// Extra key file mixed into the password (both then required)
         #[arg(long)]
         keyfile: Option<PathBuf>,
@@ -79,7 +84,24 @@ enum Cmd {
         #[arg(long)]
         keyfile: Option<PathBuf>,
     },
-    /// Run RFC-vector + roundtrip + tamper self-tests
+    /// Add recovery records (Reed-Solomon parity) as a <archive>.rvz sidecar
+    Protect {
+        archive: PathBuf,
+        /// Redundancy percent (how much damage can be repaired). Default 10.
+        #[arg(short, long, default_value_t = 10)]
+        redundancy: u32,
+    },
+    /// Repair a damaged archive in place using its .rvz recovery records
+    Repair { archive: PathBuf },
+    /// Benchmark compression presets on the inputs (sizes only)
+    Bench {
+        #[arg(required = true)]
+        inputs: Vec<PathBuf>,
+        /// Threads for the benchmark runs (0 = all cores)
+        #[arg(short = 'T', long, default_value_t = 1)]
+        threads: u32,
+    },
+    /// Run RFC-vector + roundtrip + tamper + recovery self-tests
     Selftest,
 }
 
@@ -121,10 +143,11 @@ fn resolve_read_password(archive: &std::path::Path, supplied: Option<String>) ->
 
 fn run() -> Result<()> {
     match Cli::parse().cmd {
-        Cmd::Compress { output, inputs, level, password, encrypt, cipher, filter, keyfile, force } => {
+        Cmd::Compress { output, inputs, level, password, encrypt, cipher, filter, threads, keyfile, force } => {
             if level > 9 {
                 bail!("level must be 0-9");
             }
+            let threads = resolve_threads(threads);
             if output.exists() && !force {
                 bail!("{} already exists (use --force to overwrite)", output.display());
             }
@@ -143,7 +166,7 @@ fn run() -> Result<()> {
                 (None, false) => None,
             };
             let (orig, size, used) = compress(&inputs, &output, level, password.as_deref(),
-                                              keyfile.as_deref(), cipher, filter, fmt)?;
+                                              keyfile.as_deref(), cipher, filter, threads, fmt)?;
             let ratio = if size > 0 { orig as f64 / size as f64 } else { 0.0 };
             let saved = if orig > 0 { 100.0 * (1.0 - size as f64 / orig as f64) } else { 0.0 };
             let enc = if password.is_some() {
@@ -182,7 +205,37 @@ fn run() -> Result<()> {
             let n = verify(&archive, password.as_deref(), keyfile.as_deref())?;
             println!("OK — {} entries intact ({})", n, archive.display());
         }
+        Cmd::Protect { archive, redundancy } => {
+            let (sidecar, pct) = protect(&archive, redundancy)?;
+            println!("wrote {} ({}% recovery)", sidecar.display(), pct);
+        }
+        Cmd::Repair { archive } => {
+            match repair(&archive)? {
+                0 => println!("{} is already intact — nothing to repair", archive.display()),
+                n => println!("repaired {} — reconstructed {} damaged shard(s)", archive.display(), n),
+            }
+        }
+        Cmd::Bench { inputs, threads } => {
+            let threads = resolve_threads(threads);
+            let (orig, rows) = bench(&inputs, threads)?;
+            println!("benchmark on {} ({} threads):", human(orig as f64), threads);
+            let best = rows.iter().map(|r| r.size).min().unwrap_or(0);
+            for r in &rows {
+                let ratio = if r.size > 0 { orig as f64 / r.size as f64 } else { 0.0 };
+                let mark = if r.size == best { "  ← smallest" } else { "" };
+                println!("  {:<24} {:>10}  {:.1}×{}", r.label, human(r.size as f64), ratio, mark);
+            }
+        }
         Cmd::Selftest => self_test()?,
     }
     Ok(())
+}
+
+/// 0 means "all cores"; anything else is taken as-is (min 1).
+fn resolve_threads(t: u32) -> u32 {
+    if t == 0 {
+        std::thread::available_parallelism().map(|n| n.get() as u32).unwrap_or(1)
+    } else {
+        t
+    }
 }
