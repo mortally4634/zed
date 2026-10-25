@@ -73,9 +73,9 @@ pub fn make_keystream(c: Cipher, enc_key: &[u8; 32], iv: &[u8; 16]) -> Box<dyn K
             Box::new(Rabbit::new(&k, Some(&i)))
         }
         Cipher::ChaCha20 => {
-            let key = chacha20::Key::from_slice(enc_key);
-            let nonce = chacha20::Nonce::from_slice(&iv[..12]);
-            Box::new(CrateCipher(chacha20::ChaCha20::new(key, nonce)))
+            let mut nonce = [0u8; 12];
+            nonce.copy_from_slice(&iv[..12]);
+            Box::new(crate::chacha::ChaCha20::new(enc_key, &nonce, 0))
         }
         Cipher::Aes256Ctr => {
             type AesCtr = ctr::Ctr128BE<aes::Aes256>;
@@ -138,19 +138,15 @@ pub fn vectors_ok() -> Result<(), String> {
     if blk != hexu("1fcd4eb9580012e2e0dccc9222017d6d") {
         return Err("Rabbit RFC4503 IV2 vector failed".into());
     }
-    // ChaCha20 RFC 8439 block function (key 00..1f, counter 1, nonce ..09..4a..).
+    // ChaCha20 RFC 8439 block function (key 00..1f, counter 1, nonce ..09..4a..),
+    // via the hand-written assembly block.
     let mut key = [0u8; 32];
     for i in 0..32 {
         key[i] = i as u8;
     }
     let nonce = hexu8_12("000000090000004a00000000");
-    use cipher::StreamCipherSeek;
-    let mut cc = chacha20::ChaCha20::new(chacha20::Key::from_slice(&key),
-                                         chacha20::Nonce::from_slice(&nonce));
-    cc.seek(64u32); // counter block 1 starts at byte 64
-    let mut ks = [0u8; 16];
-    cc.apply_keystream(&mut ks);
-    if ks != hexu("10f1e7e4d13b5915500fdd1fa32071c4") {
+    let blk = crate::chacha::block(&key, &nonce, 1);
+    if blk[..16] != hexu("10f1e7e4d13b5915500fdd1fa32071c4") {
         return Err("ChaCha20 RFC8439 vector failed".into());
     }
     Ok(())

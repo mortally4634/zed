@@ -22,10 +22,9 @@ rfd = { version = "0.14", optional = true }
 xz2 = "0.1"                                   # LZMA/xz (bundled liblzma, built via cc)
 tar = "0.4"                                   # solid tar container
 zip = { version = "2", default-features = false, features = ["deflate"] }
-cipher = "0.4"                                # StreamCipher / KeyIvInit traits
-chacha20 = "0.9"                              # ChaCha20 keystream (RustCrypto)
-aes = "0.8"                                   # AES block cipher
-ctr = "0.9"                                   # CTR mode -> AES-256-CTR keystream
+cipher = "0.4"                                # StreamCipher / KeyIvInit traits (AES fallback)
+aes = "0.8"                                   # AES block cipher (non-AES-NI fallback)
+ctr = "0.9"                                   # CTR mode (non-AES-NI fallback)
 rand = "0.8"                                  # random salt / IV
 walkdir = "2"                                 # recursive directory walk
 clap = { version = "4", features = ["derive"] }

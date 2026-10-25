@@ -1,15 +1,22 @@
 //! FFI to the hand-written native routines: CRC32 in C (`crc32.c`) and a
 //! SIMD XOR in x86-64 assembly (`xor.S`), both linked in via `build.rs`.
 
+use std::sync::Once;
+
 extern "C" {
-    fn zed_crc32(crc: u32, data: *const u8, len: usize) -> u32;
+    fn zed_crc32(crc: u32, data: *const u8, len: usize) -> u32; // hot loop (asm)
+    fn zed_crc32_init(); // fills the C-owned table
     fn zed_xor(dst: *mut u8, src: *const u8, len: usize); // SSE2 (asm)
     fn zed_xor_avx2(dst: *mut u8, src: *const u8, len: usize); // AVX2 (C++)
 }
 
-/// IEEE CRC-32 (zip/gzip polynomial), computed in C.
+static CRC_INIT: Once = Once::new();
+
+/// IEEE CRC-32 (zip/gzip polynomial): C-owned table, assembly hot loop.
 pub fn crc32(data: &[u8]) -> u32 {
-    // SAFETY: ptr+len come from a live slice; the C function only reads len bytes.
+    CRC_INIT.call_once(|| unsafe { zed_crc32_init() });
+    // SAFETY: ptr+len come from a live slice; the asm only reads len bytes and
+    // the table has been initialized above.
     unsafe { zed_crc32(0, data.as_ptr(), data.len()) }
 }
 

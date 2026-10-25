@@ -11,6 +11,7 @@
 
 mod archive;
 mod bench;
+mod chacha;
 mod crypto;
 mod filters;
 mod format;
