@@ -9,6 +9,7 @@
 //!   recovery - Reed-Solomon recovery records (protect / repair)
 //!   bench    - compression preset benchmark
 
+mod aes;
 mod archive;
 mod bench;
 mod chacha;

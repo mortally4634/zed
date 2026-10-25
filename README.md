@@ -19,10 +19,24 @@ and multithreading. The flagship `.zed` format is a **solid tar → LZMA
 | `src/native.rs` | FFI to the C + ASM routines (safe wrappers) |
 | `src/native/crc32.c` | **C** — IEEE CRC-32 for recovery-shard checksums |
 | `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream kernel) |
+| `src/native/chacha.S` | **x86-64 ASM** — ChaCha20 block function |
+| `src/native/aes_ctr.S` | **x86-64 ASM** — AES-256-CTR keystream (AES-NI) |
 | `src/native/sha256.S` | **x86-64 ASM** — SHA-256 block compression (HMAC + PBKDF2 core) |
+| `src/native/crc32.S` | **x86-64 ASM** — CRC-32 hot loop (table owned by C) |
 | `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR (baseline keystream apply) |
 | `src/native/xor_avx2.cpp` | **C++** — AVX2 SIMD XOR (used when the CPU supports it) |
-| `src/sha.rs` | Rust streaming SHA-256 / HMAC / PBKDF2 over the asm core |
+| `src/sha.rs` / `src/chacha.rs` / `src/aes.rs` | Rust wrappers over the asm crypto cores |
+
+### Runtime-selected ASM backends
+
+Several primitives have more than one implementation, chosen at runtime by CPU
+capability (via `is_x86_feature_detected!`), always with a safe fallback:
+
+| primitive | fast backend | fallback |
+|---|---|---|
+| keystream XOR | AVX2 (C++) | SSE2 (asm) |
+| AES-256-CTR | AES-NI (asm) | `aes`/`ctr` crates (software) |
+| Rabbit / ChaCha20 / SHA-256 / CRC-32 | assembly | — (asm is baseline) |
 | `src/lib.rs` | module glue, re-exports, self-test |
 | `src/main.rs` | CLI (`zed`) |
 | `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |

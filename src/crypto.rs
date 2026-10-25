@@ -78,6 +78,13 @@ pub fn make_keystream(c: Cipher, enc_key: &[u8; 32], iv: &[u8; 16]) -> Box<dyn K
             Box::new(crate::chacha::ChaCha20::new(enc_key, &nonce, 0))
         }
         Cipher::Aes256Ctr => {
+            // AES-NI assembly backend when available, else the audited crate.
+            #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+            if std::arch::is_x86_feature_detected!("aes") {
+                let mut ivv = [0u8; 16];
+                ivv.copy_from_slice(iv);
+                return Box::new(crate::aes::Aes256Ctr::new(enc_key, &ivv));
+            }
             type AesCtr = ctr::Ctr128BE<aes::Aes256>;
             let c = AesCtr::new_from_slices(enc_key, iv).expect("valid aes key/iv length");
             Box::new(CrateCipher(c))
