@@ -4,8 +4,10 @@
 //! known PBKDF2-SHA256 vector in the tests below.
 
 extern "C" {
-    /// One SHA-256 block compression: state[8] updated from a 64-byte block.
+    /// One SHA-256 block compression (scalar asm): state[8] from a 64-byte block.
     fn zed_sha256_block(state: *mut u32, block: *const u8);
+    /// Same, using the SHA-NI extension (only valid when the CPU has "sha").
+    fn zed_sha256_block_shani(state: *mut u32, block: *const u8);
 }
 
 const H0: [u32; 8] = [
@@ -27,7 +29,15 @@ impl Sha256 {
 
     fn compress(&mut self) {
         // SAFETY: state is 8 u32, buf is exactly 64 bytes, as the asm expects.
-        unsafe { zed_sha256_block(self.state.as_mut_ptr(), self.buf.as_ptr()) }
+        // SHA-NI backend when the CPU supports it, else the scalar asm.
+        unsafe {
+            #[cfg(any(target_arch = "x86_64", target_arch = "x86"))]
+            if std::arch::is_x86_feature_detected!("sha") {
+                zed_sha256_block_shani(self.state.as_mut_ptr(), self.buf.as_ptr());
+                return;
+            }
+            zed_sha256_block(self.state.as_mut_ptr(), self.buf.as_ptr());
+        }
     }
 
     pub fn update(&mut self, mut data: &[u8]) {
@@ -192,5 +202,36 @@ mod tests {
         let mut out = [0u8; 20];
         pbkdf2_sha256(b"password", b"salt", 1, &mut out);
         assert_eq!(out.to_vec(), hex("120fb6cffcf8b32c43e7225256c4f837a86548c9"));
+    }
+
+    #[test]
+    fn shani_matches_scalar_asm() {
+        if !std::arch::is_x86_feature_detected!("sha") {
+            return; // no SHA-NI; the scalar asm is the only path
+        }
+        // Compress identical random blocks with both backends from identical
+        // start states; they must agree bit-for-bit over many trials.
+        let mut seed = 0x12345678u32;
+        let mut rng = || {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 24) as u8
+        };
+        for _ in 0..64 {
+            let mut st0 = [0u32; 8];
+            for s in st0.iter_mut() {
+                *s = u32::from_le_bytes([rng(), rng(), rng(), rng()]);
+            }
+            let mut block = [0u8; 64];
+            for b in block.iter_mut() {
+                *b = rng();
+            }
+            let mut a = st0;
+            let mut b = st0;
+            unsafe {
+                zed_sha256_block_shani(a.as_mut_ptr(), block.as_ptr());
+                zed_sha256_block(b.as_mut_ptr(), block.as_ptr());
+            }
+            assert_eq!(a, b, "SHA-NI block differs from scalar asm");
+        }
     }
 }

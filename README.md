@@ -21,7 +21,8 @@ and multithreading. The flagship `.zed` format is a **solid tar → LZMA
 | `src/native/rabbit.S` | **x86-64 ASM** — Rabbit `next_state` (keystream kernel) |
 | `src/native/chacha.S` | **x86-64 ASM** — ChaCha20 block function |
 | `src/native/aes_ctr.S` | **x86-64 ASM** — AES-256-CTR keystream (AES-NI) |
-| `src/native/sha256.S` | **x86-64 ASM** — SHA-256 block compression (HMAC + PBKDF2 core) |
+| `src/native/sha256.S` | **x86-64 ASM** — SHA-256 block (scalar; HMAC + PBKDF2 core) |
+| `src/native/sha256_ni.S` | **x86-64 ASM** — SHA-256 block via the SHA-NI extension |
 | `src/native/crc32.S` | **x86-64 ASM** — CRC-32 hot loop (table owned by C) |
 | `src/native/xor.S` | **x86-64 ASM** — SSE2 SIMD XOR (baseline keystream apply) |
 | `src/native/xor_avx2.cpp` | **C++** — AVX2 SIMD XOR (used when the CPU supports it) |
@@ -36,7 +37,8 @@ capability (via `is_x86_feature_detected!`), always with a safe fallback:
 |---|---|---|
 | keystream XOR | AVX2 (C++) | SSE2 (asm) |
 | AES-256-CTR | AES-NI (asm) | `aes`/`ctr` crates (software) |
-| Rabbit / ChaCha20 / SHA-256 / CRC-32 | assembly | — (asm is baseline) |
+| SHA-256 | SHA-NI (asm) | scalar (asm) |
+| Rabbit / ChaCha20 / CRC-32 | assembly | — (asm is baseline) |
 | `src/lib.rs` | module glue, re-exports, self-test |
 | `src/main.rs` | CLI (`zed`) |
 | `src/bin/gui.rs` | GUI (`zed-gui`, feature `gui`) |

@@ -3,6 +3,7 @@ cargo:rerun-if-changed=src/native/crc32.S
 cargo:rerun-if-changed=src/native/xor.S
 cargo:rerun-if-changed=src/native/rabbit.S
 cargo:rerun-if-changed=src/native/sha256.S
+cargo:rerun-if-changed=src/native/sha256_ni.S
 cargo:rerun-if-changed=src/native/chacha.S
 cargo:rerun-if-changed=src/native/aes_ctr.S
 cargo:rerun-if-changed=src/native/xor_avx2.cpp
